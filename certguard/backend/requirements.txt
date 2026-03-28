@@ -1,0 +1,6 @@
+flask
+flask-cors
+cryptography
+certifi
+Flask-Limiter
+requests

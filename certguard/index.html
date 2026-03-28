@@ -360,6 +360,10 @@
     <script>
         const API_URL = (() => {
             const pageHost = window.location.hostname || 'localhost';
+            // Use relative path for Vercel production, fallback to 5000 for local dev
+            if (pageHost !== 'localhost' && pageHost !== '127.0.0.1') {
+                return '/api/scan';
+            }
             return `http://${pageHost}:5000/api/scan`;
         })();
 
