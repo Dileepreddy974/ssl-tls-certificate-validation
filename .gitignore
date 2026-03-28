@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+*.zip
+.qoder/
+flake8-log.txt
+flake8_output.txt
+.env

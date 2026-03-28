@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CertGuard - SSL/TLS Security Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            margin-top: 40px;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .search-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .grade-A-plus { background: #4ade80; color: white; }
+        .grade-B { background: #86efac; color: white; }
+        .grade-C { background: #fde047; color: black; }
+        .grade-D { background: #fdba74; color: black; }
+        .grade-F { background: #f87171; color: white; }
+
+        .score-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .score-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 0.95em;
+            color: #333;
+            font-weight: 600;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-valid { background: #4ade80; color: white; }
+        .status-expired { background: #f87171; color: white; }
+        .status-warning { background: #fde047; color: black; }
+
+        .tls-item {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.95em;
+        }
+
+        .tls-supported { background: #4ade80; color: white; }
+        .tls-not-supported { background: #e5e7eb; color: #666; }
+
+        .trust-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .security-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .security-feature {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .security-feature:last-child {
+            border-bottom: none;
+        }
+
+        .feature-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .feature-enabled { background: #4ade80; color: white; }
+        .feature-disabled { background: #fde047; color: black; }
+        .feature-weak { background: #fdba74; color: black; }
+
+        .trust-status {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+        
+        .loading-steps {
+            margin-top: 20px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .loading-step {
+            display: inline-block;
+            margin: 0 5px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SSL/TLS Security Scanner</h1>
+        <p class="subtitle">Certificate Validation and Protocol Analysis</p>
+
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="hostnameInput" placeholder="Enter domain (e.g., google.com)" onkeypress="if(event.key==='Enter') scanDomain()">
+                <button onclick="scanDomain()" id="scanBtn">Scan Domain</button>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing certificate and TLS configuration...</p>
+            <div class="loading-steps">
+                <span class="loading-step">●</span>
+                <span class="loading-step">●</span>
+                <span class="loading-step">●</span>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="results" id="results">
+            <div class="score-display">
+                <div class="grade-badge" id="gradeBadge">A+</div>
+                <div class="score-number"><span id="scoreValue">95</span>/100</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Certificate Information</div>
+                <div class="info-grid" id="certInfo"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Validation Results</div>
+                <div class="info-grid" id="validationResults"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">SSL/TLS Protocol Support</div>
+                <div id="tlsVersions"></div>
+            </div>
+
+            <div class="trust-box" id="trustBox"></div>
+            
+            <div class="security-section" id="securityChecks" style="display: none;">
+                <div class="section-title">Enhanced Security Checks</div>
+                <div id="securityFeatures"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = (() => {
+            const pageHost = window.location.hostname || 'localhost';
+            return `http://${pageHost}:5000/api/scan`;
+        })();
+
+        function normalizeHostname(input) {
+            let value = (input || '').trim().toLowerCase();
+            value = value.replace(/^https?:\/\//, '');
+            value = value.split('/')[0].split('?')[0].split('#')[0];
+            value = value.split(':')[0];
+            return value;
+        }
+
+        async function scanDomain() {
+            const hostname = normalizeHostname(document.getElementById('hostnameInput').value);
+            
+            if (!hostname) {
+                showError('Please enter a domain name');
+                return;
+            }
+
+            // Hide previous results
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('scanBtn').disabled = true;
+            document.getElementById('scanBtn').textContent = 'Scanning...';
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hostname: hostname }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    showError('Request timed out. The server may be slow or unreachable.');
+                } else if (error instanceof TypeError) {
+                    showError('Unable to reach backend API at ' + API_URL + '. Ensure backend server is running.');
+                } else {
+                    showError(error.message);
+                }
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('scanBtn').disabled = false;
+                document.getElementById('scanBtn').textContent = 'Scan Domain';
+            }
+        }
+
+        function displayResults(data) {
+            // Grade badge
+            const gradeBadge = document.getElementById('gradeBadge');
+            gradeBadge.textContent = data.grade;
+            
+            // Clean up previous classes deterministically
+            gradeBadge.classList.forEach(className => {
+                if (className.startsWith('grade-') && className !== 'grade-badge') {
+                    gradeBadge.classList.remove(className);
+                }
+            });
+            gradeBadge.classList.add('grade-' + data.grade.replace('+', '-plus'));
+
+            // Score
+            document.getElementById('scoreValue').textContent = data.score;
+
+            // Certificate info
+            const certInfo = document.getElementById('certInfo');
+            certInfo.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Subject</div>
+                    <div class="info-value">${data.certificate.subject || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Issuer</div>
+                    <div class="info-value">${data.certificate.issuer || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Serial Number</div>
+                    <div class="info-value" style="font-size: 0.8em;">${data.certificate.serial_number || 'N/A'}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Valid From</div>
+                    <div class="info-value">${data.certificate.not_before}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Valid Until</div>
+                    <div class="info-value">${data.certificate.not_after}</div>
+                </div>
+                <div class="info-item" style="grid-column: span 2;">
+                    <div class="info-label">SHA256 Fingerprint</div>
+                    <div class="info-value" style="font-size: 0.8em; word-break: break-all; font-family: monospace;">${data.certificate.fingerprint_sha256 || 'N/A'}</div>
+                </div>
+                <div class="info-item" style="grid-column: span 2;">
+                    <div class="info-label">Subject Alternative Names</div>
+                    <div class="info-value" style="font-size: 0.85em;">${(data.certificate.subject_alt_names || []).map(san => san[1]).join(', ') || 'N/A'}</div>
+                </div>
+            `;
+
+            // Validation results
+            const validationResults = document.getElementById('validationResults');
+            const expiryStatus = data.validation.expiry;
+            let expiryClass = 'status-valid';
+            if (expiryStatus === 'expired') expiryClass = 'status-expired';
+            else if (expiryStatus === 'expiring soon') expiryClass = 'status-warning';
+
+            validationResults.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Certificate Status</div>
+                    <div class="info-value">
+                        <span class="status-badge ${expiryClass}">${expiryStatus.toUpperCase()}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Hostname Match</div>
+                    <div class="info-value">
+                        <span class="status-badge ${data.validation.hostname_match ? 'status-valid' : 'status-expired'}">
+                            ${data.validation.hostname_match ? '✓ MATCH' : '✗ MISMATCH'}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // TLS versions
+            const tlsVersions = document.getElementById('tlsVersions');
+            let tlsHtml = '';
+            for (const [version, supported] of Object.entries(data.tls_versions)) {
+                tlsHtml += `
+                    <div class="tls-item ${supported ? 'tls-supported' : 'tls-not-supported'}">
+                        ${version}: ${supported ? '✓' : '✗'}
+                    </div>
+                `;
+            }
+            tlsVersions.innerHTML = tlsHtml;
+
+            // Trust explanation
+            const trustBox = document.getElementById('trustBox');
+            trustBox.innerHTML = `
+                <div class="trust-status">${data.trusted ? '✓ Trusted' : '⚠ Not Trusted'}</div>
+                <div><strong>Reason:</strong> ${data.explanation.reason}</div>
+                <div style="margin-top: 10px;"><strong>Brief:</strong> ${data.explanation.brief}</div>
+                <div style="margin-top: 10px;"><strong>Note:</strong> ${data.explanation.note}</div>
+            `;
+
+            // Enhanced security checks
+            if (data.security_checks) {
+                const securitySection = document.getElementById('securityChecks');
+                const securityFeatures = document.getElementById('securityFeatures');
+                
+                let securityHtml = '';
+                
+                // Cipher Strength Check
+                const cipher = data.security_checks.cipher_strength;
+                if (cipher) {
+                    let cipherBadge;
+                    if (cipher.overall_strength === 'strong') {
+                        cipherBadge = '<span class="feature-badge feature-enabled">✓ Strong</span>';
+                    } else if (cipher.overall_strength === 'weak') {
+                        cipherBadge = '<span class="feature-badge feature-weak">⚠ Weak</span>';
+                    } else {
+                        cipherBadge = '<span class="feature-badge feature-disabled">? Unknown</span>';
+                    }
+                    
+                    let cipherDetails = '';
+                    if (cipher.current_cipher) {
+                        cipherDetails = `
+                            <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                                Current: ${cipher.current_cipher.name} (${cipher.current_cipher.version})
+                            </div>
+                        `;
+                    }
+                    if (cipher.weakness_reasons && cipher.weakness_reasons.length > 0) {
+                        cipherDetails += `
+                            <div style="font-size: 0.85em; color: #dc2626; margin-top: 5px;">
+                                Issues: ${cipher.weakness_reasons.join(', ')}
+                            </div>
+                        `;
+                    }
+                    
+                    securityHtml += `
+                        <div class="security-feature">
+                            <div>
+                                <strong>Cipher Strength</strong>
+                                ${cipherDetails}
+                            </div>
+                            ${cipherBadge}
+                        </div>
+                    `;
+                }
+                
+                // Chain Validation
+                const chain = data.security_checks.chain_validation;
+                if (chain) {
+                    const chainBadge = chain.valid 
+                        ? '<span class="feature-badge feature-enabled">✓ Valid</span>'
+                        : '<span class="feature-badge feature-weak">✗ Invalid</span>';
+                    securityHtml += `
+                        <div class="security-feature">
+                            <div>
+                                <strong>Certificate Chain Validation</strong>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 5px;">${chain.message}</div>
+                            </div>
+                            ${chainBadge}
+                        </div>
+                    `;
+                }
+                
+                // Revocation Check
+                const revocation = data.security_checks.revocation;
+                if (revocation) {
+                    let revocationBadge;
+                    let revocationDetails = '';
+                    
+                    if (!revocation.checked && revocation.method === 'none') {
+                        revocationBadge = '<span class="feature-badge feature-disabled">○ Not Checked</span>';
+                        revocationDetails = `<div style="font-size: 0.85em; color: #666; margin-top: 5px;">${revocation.message}</div>`;
+                    } else if (revocation.checked) {
+                        if (revocation.revoked) {
+                            revocationBadge = '<span class="feature-badge feature-weak">✗ REVOKED</span>';
+                            revocationDetails = `
+                                <div style="font-size: 0.85em; color: #dc2626; margin-top: 5px;">
+                                    <strong>⚠️ CRITICAL:</strong> ${revocation.message}
+                                </div>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                                    Method: ${revocation.method.toUpperCase()} | 
+                                    ${revocation.revocation_time ? 'Revoked: ' + revocation.revocation_time : ''}
+                                </div>
+                            `;
+                        } else {
+                            revocationBadge = '<span class="feature-badge feature-enabled">✓ Valid</span>';
+                            const methodInfo = revocation.method === 'ocsp' 
+                                ? `OCSP Responder: ${revocation.responder || 'N/A'}`
+                                : `CRL URL: ${revocation.crl_url || 'N/A'}`;
+                            revocationDetails = `
+                                <div style="font-size: 0.85em; color: #16a34a; margin-top: 5px;">
+                                    ${revocation.message}
+                                </div>
+                                <div style="font-size: 0.85em; color: #666; margin-top: 5px;">
+                                    ${methodInfo} |
+                                    Updated: ${revocation.this_update || revocation.last_update || 'N/A'}
+                                </div>
+                            `;
+                        }
+                    } else {
+                        revocationBadge = '<span class="feature-badge feature-disabled">? Unknown</span>';
+                        revocationDetails = `<div style="font-size: 0.85em; color: #666; margin-top: 5px;">${revocation.message}</div>`;
+                    }
+                    
+                    securityHtml += `
+                        <div class="security-feature">
+                            <div style="flex: 1;">
+                                <strong>Certificate Revocation Status</strong>
+                                ${revocationDetails}
+                            </div>
+                            <div style="margin-left: 15px;">${revocationBadge}</div>
+                        </div>
+                    `;
+                }
+                
+                securityFeatures.innerHTML = securityHtml;
+                securitySection.style.display = 'block';
+            } else {
+                document.getElementById('securityChecks').style.display = 'none';
+            }
+
+            document.getElementById('results').classList.add('show');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = 'Error: ' + message;
+            errorDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
