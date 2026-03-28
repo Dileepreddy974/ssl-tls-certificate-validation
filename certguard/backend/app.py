@@ -3,6 +3,12 @@ import concurrent.futures
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_limiter import Limiter
+import sys
+import os
+
+# Ensure the backend directory is in the Python path for Vercel serverless execution
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from flask_limiter.util import get_remote_address
 from validators import get_certificate_info, validate_certificate, validate_chain_of_trust, check_revocation_status
 from tls_checker import check_tls_versions

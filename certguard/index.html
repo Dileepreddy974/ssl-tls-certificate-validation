@@ -406,8 +406,13 @@
                 clearTimeout(timeoutId);
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                    const textBlock = await response.text();
+                    try {
+                        const errorData = JSON.parse(textBlock);
+                        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                    } catch (jsonErr) {
+                        throw new Error(`Server returned HTTP ${response.status}: Vercel deployment error details are likely in your logs.`);
+                    }
                 }
 
                 const data = await response.json();
